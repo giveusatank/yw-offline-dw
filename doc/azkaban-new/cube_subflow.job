@@ -1,0 +1,5 @@
+#cube_subflow.job
+type=flow
+flow.name=cube-end
+dependencies=yunwang-bi-show
+notify.emails=1181047207@qq.com,894454759@qq.com

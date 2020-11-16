@@ -1,0 +1,4 @@
+#kylin-cube-launcher.job
+type=command
+command=java -jar /usr/local/qinzhen/kylin-cube-handler-1.0-SNAPSHOT.jar build
+working.dir=/usr/local/azkaban/azkaban_work_dir/working_dir

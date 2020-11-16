@@ -1,0 +1,5 @@
+#metadata-end.job
+type=command
+command=echo "metadata end"
+dependencies=run-OdsOrganization2Dim
+working.dir=/usr/local/azkaban/azkaban_work_dir/working_dir

@@ -1,0 +1,33 @@
+{
+  "db_user":"pdadmin",
+  "db_password":"R8$7Zo319%0tUi",
+  "db_url":"jdbc:mysql://rm-2zefoq89s74i5bfal.mysql.rds.aliyuncs.com:3306/yw_bus",
+  "table_name":"pep_user_data",
+  "mapping":
+      {
+        "user_id"           :"uid",
+        "product_id"        :"'302'",
+        "company"           :"'110000006'",
+        "reg_name"          :"",
+        "nick_name"         :"",
+        "real_name"         :"",
+        "phone"             :"",
+        "email"             :"",
+        "sex"               :"",
+        "birthday"          :"",
+        "address"           :"",
+        "org_id"            :"pxid",
+        "user_type"         :"",
+        "first_access_time" :"concat(unix_timestamp(createtime,'yyyy-MM-dd HH:mm:ss'),'000')",
+        "last_access_time"  :"concat(unix_timestamp(createtime,'yyyy-MM-dd HH:mm:ss'),'000')",
+        "last_access_ip"    :"",
+        "country"           :"",
+        "province"          :"prov",
+        "city"              :"city",
+        "location"          :"school",
+        "row_timestamp"     :"'1597988013000'",
+        "row_status"        :"'1'",
+        "put_date"          :"'20190005'"
+      },
+  "partitionsByKey":"DATE_FORMAT(createtime,'%d')"
+}

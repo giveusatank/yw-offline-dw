@@ -1,0 +1,33 @@
+{
+  "db_user":"pdadmin",
+  "db_password":"R8$7Zo319%0tUi",
+  "db_url":"jdbc:mysql://rm-2zefoq89s74i5bfal.mysql.rds.aliyuncs.com:3306/yw_bus",
+  "table_name":"gd_a_auth_user",
+  "mapping":
+      {
+        "user_id"           :"user_id",
+        "product_id"        :"'16101'",
+        "company"           :"'440101001'",
+        "reg_name"          :"idcard",
+        "nick_name"         :"name",
+        "real_name"         :"name",
+        "phone"             :"",
+        "email"             :"",
+        "sex"               :"",
+        "birthday"          :"",
+        "address"           :"school",
+        "org_id"            :"org_id",
+        "user_type"         :"role",
+        "first_access_time" :"concat(unix_timestamp(s_create_time,'yyyy-MM-dd HH:mm:ss'),'000')",
+        "last_access_time"  :"concat(unix_timestamp(s_create_time,'yyyy-MM-dd HH:mm:ss'),'000')",
+        "last_access_ip"    :"",
+        "country"           :"'中国'",
+        "province"          :"'广东'",
+        "city"              :"",
+        "location"          :"school",
+        "row_timestamp"     :"'1591579130000'",
+        "row_status"        :"'1'",
+        "put_date"          :"'20190004'"
+      },
+  "partitionsByKey":"DATE_FORMAT(s_create_time,'%d')"
+}

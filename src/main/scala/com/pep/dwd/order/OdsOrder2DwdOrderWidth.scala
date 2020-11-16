@@ -1,0 +1,304 @@
+package com.pep.dwd.order
+
+import java.text.SimpleDateFormat
+import java.util.{Calendar, Date}
+
+import org.apache.spark.SparkConf
+import org.apache.spark.sql.SparkSession
+
+import scala.util.control.Breaks
+
+object OdsOrder2DwdOrderWidth {
+
+  def main(args: Array[String]): Unit = {
+
+    val conf = new SparkConf().setAppName("RUN-OdsOrder2DwdOrderWidth")
+    /*.set("spark.sql.shuffle.partitions","30")*/
+
+    val spark = SparkSession.builder().config(conf).enableHiveSupport().getOrCreate()
+    val loop = new Breaks
+    val regPatten = "^[0-9]{8}$".r
+    val flag = args.length > 0
+    val format = new SimpleDateFormat("yyyyMMdd")
+    val cal = Calendar.getInstance()
+    cal.setTime(new Date())
+    cal.add(Calendar.DATE,-1)
+    var yesStr = format.format(cal.getTime)
+
+    loop.breakable{
+      for(i <- 0 until (if(args.length > 1) args.length else 1)){
+        if(flag) {
+          if(regPatten.findPrefixOf(args(i))==None) loop.break()
+          yesStr = args(i)
+        }
+        doAction(spark,yesStr)
+      }
+      spark.stop()
+    }
+  }
+
+
+  def doAction(spark:SparkSession, yesStr:String): Unit ={
+
+    writeOdsOrderInfoAndDetail2DwdOrderWidth(spark,yesStr)
+    writeOdsJxwCtreeRel2DwdOrderWidth(spark,yesStr)
+  }
+
+  def writeOdsOrderInfoAndDetail2DwdOrderWidth(spark: SparkSession, yesStr: String): Unit = {
+
+    spark.sql("use dwd")
+    val createSql =
+      """
+        |create table if not exists dwd_order_related_width(
+        |order_id string,
+        |detail_id string,
+        |app_id string,
+        |app_order_id string,
+        |product_id string,
+        |product_name string,
+        |quantity string,
+        |type string,
+        |code string,
+        |user_id string,
+        |sale_channel_id string,
+        |sale_channel_name string,
+        |state string,
+        |create_time string,
+        |del_time string,
+        |start_time string,
+        |end_time string,
+        |pay_time string,
+        |discount string,
+        |beans string,
+        |material_code string,
+        |material_name string,
+        |pay_channel string,
+        |pay_price string,
+        |order_price string,
+        |price string,
+        |pay_tradeno string,
+        |coupons string,
+        |bean_type string,
+        |remark string,
+        |row_timestamp string,
+        |row_status string,
+        |authorization_way string,
+        |count_date string )
+        |stored as parquet
+      """.stripMargin
+
+
+    val createDailySql =
+      """
+        |create table if not exists dwd_order_related_daily_width(
+        |order_id string,
+        |detail_id string,
+        |app_id string,
+        |app_order_id string,
+        |product_id string,
+        |product_name string,
+        |quantity bigint,
+        |type string,
+        |code string,
+        |user_id string,
+        |sale_channel_id string,
+        |sale_channel_name string,
+        |state string,
+        |create_time string,
+        |del_time string,
+        |start_time string,
+        |end_time string,
+        |pay_time string,
+        |discount string,
+        |beans string,
+        |material_code string,
+        |material_name string,
+        |pay_channel string,
+        |pay_price bigint,
+        |order_price bigint,
+        |price bigint,
+        |pay_tradeno string,
+        |coupons string,
+        |bean_type string,
+        |remark string,
+        |row_timestamp string,
+        |row_status string,
+        |authorization_way string)
+        |partitioned by (count_date string)
+        |stored as parquet
+      """.stripMargin
+
+    spark.sql(createSql)
+    spark.sql(createDailySql)
+    spark.sql("use ods")
+
+    val createSqlOrderInfo =
+      """
+        |CREATE TABLE if not exists ods.ods_order_info(`id` string COMMENT 'from deserializer', `app_id` string COMMENT 'from deserializer', `app_order_id` string COMMENT 'from deserializer', `user_id` string COMMENT 'from deserializer', `user_name` string COMMENT 'from deserializer', `sale_channel_id` string COMMENT 'from deserializer', `sale_channel_name` string COMMENT 'from deserializer', `s_state` string COMMENT 'from deserializer', `s_create_time` string COMMENT 'from deserializer',
+        |`s_delete_time`
+        |string COMMENT 'from deserializer', `order_price` string COMMENT 'from deserializer', `discount` string COMMENT 'from deserializer', `pay_channel` string COMMENT 'from deserializer', `pay_time` string COMMENT 'from deserializer', `pay_price` string COMMENT 'from deserializer', `pay_tradeno` string COMMENT 'from deserializer', `remark` string COMMENT 'from deserializer', `beans` string COMMENT 'from deserializer', `bean_type` string COMMENT 'from deserializer', `coupons` string COMMENT 'from deserializer', `row_timestamp` string COMMENT 'from deserializer', `row_status` string COMMENT 'from deserializer')
+        |    PARTITIONED BY (`count_date` string)
+        |    ROW FORMAT SERDE 'org.apache.hive.hcatalog.data.JsonSerDe'
+        |    WITH SERDEPROPERTIES (
+        |      'serialization.format' = '1'
+        |    )
+        |    STORED AS
+        |      INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
+        |    OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+      """.stripMargin
+    spark.sql(createSqlOrderInfo)
+
+    val createSqlOrderDetail =
+      """
+        |CREATE TABLE if not exists ods.ods_order_detail(`id` string COMMENT 'from deserializer', `app_id` string COMMENT 'from deserializer', `app_order_id` string COMMENT 'from deserializer', `product_id` string COMMENT 'from deserializer', `product_name` string COMMENT 'from deserializer', `price` string COMMENT 'from deserializer',
+        | `quantity` string COMMENT 'from deserializer', `type` string COMMENT 'from deserializer', `code` string COMMENT 'from deserializer', `start_time` string COMMENT
+        |'from
+        |deserializer', `end_time` string COMMENT 'from deserializer', `beans` string COMMENT 'from deserializer', `materiel_code` string COMMENT 'from deserializer', `materiel_name` string COMMENT 'from deserializer', `row_timestamp` string COMMENT 'from deserializer', `row_status` string COMMENT 'from deserializer')
+        |    PARTITIONED BY (`count_date` string)
+        |    ROW FORMAT SERDE 'org.apache.hive.hcatalog.data.JsonSerDe'
+        |    WITH SERDEPROPERTIES (
+        |      'serialization.format' = '1'
+        |    )
+        |    STORED AS
+        |      INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
+        |    OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+      """.stripMargin
+    spark.sql(createSqlOrderDetail)
+
+    spark.sql("msck repair table ods_order_info")
+    spark.sql("msck repair table ods_order_detail")
+    spark.sql("truncate table dwd.dwd_order_related_width")
+
+    val insertSql =
+      s"""
+         |insert overwrite table dwd.dwd_order_related_width
+         |select tt.infoId,tt.detailId,if(tt.company='pep_click','1214',tt.appId),tt.appOrderId,dws.yunwangdateformat("tbid",trim(tt.productId)),tt.productName,
+         |tt.quantity,tt.type,tt.code,tt.userId,tt.company,tt.companyName,tt.state,tt.create_time,
+         |tt.del_time,tt.start_time,tt.end_time,tt.pay_time,tt.discount,tt.beans,tt.materielCode,
+         |tt.materielName,tt.payChannel,tt.payPrice,tt.orderPrice,tt.price,tt.payTradeno,tt.coupons,
+         |tt.beanType,tt.remark,tt.rt,tt.rs,'01','${yesStr}' from (select in.id as infoId,de.id as detailId,dws.yunwangdateformat("order",in.app_id) as appId,
+         |in.app_order_id as appOrderId,de.product_id as productId,de.product_name as productName,de.quantity as quantity,
+         |de.type as type,de.code as code,in.user_id as userId,dws.yunwangdateformat("order",in.sale_channel_id) as company,
+         |in.sale_channel_name as companyName,in.s_state as state,
+         |from_unixtime(unix_timestamp(split(in.s_create_time,' ')[0],'yyyy-MM-dd'),'yyyyMMdd') as create_time,
+         |from_unixtime(unix_timestamp(split(in.s_delete_time,' ')[0],'yyyy-MM-dd'),'yyyyMMdd') as del_time,
+         |from_unixtime(unix_timestamp(split(de.start_time,' ')[0],'yyyy-MM-dd'),'yyyyMMdd') as start_time,
+         |from_unixtime(unix_timestamp(split(de.end_time,' ')[0],'yyyy-MM-dd'),'yyyyMMdd') as end_time,
+         |from_unixtime(unix_timestamp(split(in.pay_time,' ')[0],'yyyy-MM-dd'),'yyyyMMdd') as pay_time,
+         |in.discount as discount,in.beans as beans,de.materiel_code as materielCode,de.materiel_name as materielName,
+         |in.pay_channel as payChannel,in.pay_price as payPrice,in.order_price as orderPrice,de.price as price,
+         |in.pay_tradeno as payTradeno,in.coupons as coupons,in.bean_type as beanType,in.remark as remark,
+         |de.count_date as countDate,rt,rs,row_number() over(partition by in.id,de.id,in.app_id,in.app_order_id,in.user_id
+         |order by in.id,de.id,in.app_id,in.app_order_id,in.user_id) as rank from
+         |(select * from (select *,row_number() over(partition by app_id,app_order_id,product_id order by app_id) as rank
+         |from ods_order_detail where count_date<='${yesStr}') as tmp2
+         |where tmp2.rank=1) as de inner join
+         |(select id,app_id,app_order_id,user_id,user_name,sale_channel_id,sale_channel_name,s_state,s_create_time,
+         |s_delete_time,order_price,discount,pay_channel,pay_time,pay_price,pay_tradeno,remark,beans,bean_type,
+         |coupons,row_timestamp as rt,row_status as rs from (select *,row_number() over(partition by app_id,app_order_id order by app_id) as rank
+         |from ods_order_info where count_date<='${yesStr}') as tmp1
+         |where tmp1.rank=1) as in on
+         |de.app_order_id=in.app_order_id) as tt where tt.rank=1
+      """.stripMargin
+
+    val insertDailySql =
+      s"""
+         |insert overwrite table dwd.dwd_order_area_related_width
+         |select app_id,dord.product_id,product_name,quantity,type,code,user_id,province,city,sale_channel_id,
+         |sale_channel_name,pay_time,discount,beans,material_code,material_name,pay_channel,pay_price,order_price,
+         |price from dwd.dwd_order_related_width as dord left join
+         |(select product_id,active_user,province,city from (select *,row_number() over(partition by product_id,active_user order by v_c desc) as rn
+         |from (select product_id,active_user,province,city,count(1) as v_c
+         |from dwd.dwd_user_area group by product_id,active_user,province,city ) as temp1 ) as temp2
+         |where rn=1 ) as temp3 on dord.app_id=temp3.product_id and dord.user_id=temp3.active_user
+      """.stripMargin
+
+    spark.sql(insertSql)
+    spark.sql(insertDailySql)
+
+
+
+  }
+  def writeOdsJxwCtreeRel2DwdOrderWidth(spark: SparkSession, yesStr: String): Unit = {
+    spark.sql("use dwd")
+    val createSql =
+      """
+        |create table if not exists dwd_order_related_width(
+        |order_id string,
+        |detail_id string,
+        |app_id string,
+        |app_order_id string,
+        |product_id string,
+        |product_name string,
+        |quantity string,
+        |type string,
+        |code string,
+        |user_id string,
+        |sale_channel_id string,
+        |sale_channel_name string,
+        |state string,
+        |create_time string,
+        |del_time string,
+        |start_time string,
+        |end_time string,
+        |pay_time string,
+        |discount string,
+        |beans string,
+        |material_code string,
+        |material_name string,
+        |pay_channel string,
+        |pay_price string,
+        |order_price string,
+        |price string,
+        |pay_tradeno string,
+        |coupons string,
+        |bean_type string,
+        |remark string,
+        |row_timestamp string,
+        |row_status string,
+        |authorization_way string,
+        |count_date string )
+        |stored as parquet
+      """.stripMargin
+    spark.sql(createSql)
+
+    spark.sql("use ods")
+
+    val createSql1 =
+      """
+        |CREATE EXTERNAL TABLE  if not exists  ods.ods_jxw_platform_user_ctree_rel(`id` string, `user_id` string, `user_name` string, `user_seting` string, `org_id` string, `org_name` string, `edu_code` string, `rkxd` string, `zxxkc` string, `publisher` string, `nj` string, `fascicule` string, `year` string, `keywords` string, `ctree_id` string, `ctree_name` string, `sub_heading` string, `s_state` string, `score` string, `s_version` string, `range_type` string, `ctree_related_object` string,
+        | `view_numb`
+        |string, `down_numb` string, `s_creator` string, `s_creator_name` string, `s_create_time` string, `valid_time` string, `authorization_code` string, `authorization_type` string, `authorization_way` string, `end_time` string, `reg_time` string, `row_timestamp` string, `row_status` string)
+        |PARTITIONED BY (`count_date` string)
+        |ROW FORMAT SERDE 'org.apache.hive.hcatalog.data.JsonSerDe'
+        |WITH SERDEPROPERTIES (
+        |  'serialization.format' = '1'
+        |)
+        |STORED AS
+        |  INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
+        |OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+        |LOCATION '/pep_cloud/business/ods/ods_jxw_platform_user_ctree_rel'
+      """.stripMargin
+    spark.sql(createSql1)
+
+
+
+    spark.sql("msck repair table ods_jxw_platform_user_ctree_rel")
+
+    val insertSql =
+      s"""
+         |insert into table dwd.dwd_order_related_width
+         |select id,NULL,'11120101',NULL,ctree_id,ctree_name,'1',NULL,
+         |NULL,user_id,'110000006',NULL,s_state,s_create_time,NULL,NULL,
+         |end_time,from_unixtime(unix_timestamp(split(s_create_time,' ')[0],'yyyy-MM-dd'),'yyyyMMdd'),NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+         |NULL,NULL,NULL,NULL,row_timestamp,row_status,authorization_way,'${yesStr}'
+         |from
+         |(select * from (
+         |select *, row_number() over (partition by id order by row_timestamp desc ) num from ods.ods_jxw_platform_user_ctree_rel
+         |) where num=1 and row_status='1')
+         | where s_state='110' and count_date<='${yesStr}'
+      """.stripMargin
+
+    spark.sql(insertSql)
+  }
+}

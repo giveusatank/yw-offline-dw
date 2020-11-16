@@ -1,0 +1,16 @@
+#run-DwsTextbook2AdsTextbook.job
+type=command
+command=sh spark-submit \
+ --master yarn \
+ --deploy-mode cluster \
+ --num-executors 10 \
+ --executor-memory 8G \
+ --driver-memory 2G \
+ --executor-cores 8 \
+ --queue dwq \
+ --conf spark.yarn.maxAppAttempts=0 \
+ --conf spark.yarn.executor.memoryOverhead=6000 \
+ --class com.pep.ads.textbook.DwsTextBookUsed2AdsTextBookTotal \
+ /root/pep-job/yunwang-dw-1.0-SNAPSHOT.jar
+dependencies=run-DwsTextBookUsed2AdsTextBookAvgTime
+working.dir=/usr/local/azkaban/azkaban_work_dir/working_dir

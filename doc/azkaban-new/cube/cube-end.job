@@ -1,0 +1,4 @@
+#cube-end.job
+type=command
+command=echo "cube end"
+dependencies=kylin-cube-launcher

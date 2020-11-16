@@ -1,0 +1,4 @@
+#es_subflow.job
+type=flow
+flow.name=es-end
+dependencies=cube_subflow
